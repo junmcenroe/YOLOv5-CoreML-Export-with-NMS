@@ -258,7 +258,8 @@ class CoreMLExportModel(torch.nn.Module):
         return class_probs, boxes
 
 @try_export
-def export_coreml(model, im, file, num_boxes, num_classes, labels, conf_thres, iou_thres, prefix=colorstr('CoreML:')):
+#def export_coreml(model, im, file, num_boxes, num_classes, labels, conf_thres, iou_thres, prefix=colorstr('CoreML:')):
+def export_coreml(model, im, file, int8, half, num_boxes, num_classes, labels, conf_thres, iou_thres, prefix=colorstr('CoreML:')):
     # YOLOv5 CoreML export
     check_requirements(('coremltools',))
     import coremltools as ct
@@ -271,6 +272,16 @@ def export_coreml(model, im, file, num_boxes, num_classes, labels, conf_thres, i
     ts = torch.jit.trace(export_model.eval(), im, strict=False)  # TorchScript model
 
     orig_model = ct.convert(ts, inputs=[ct.ImageType('image', shape=im.shape, scale=1 / 255, bias=[0, 0, 0])])
+
+    # quantize
+    bits, mode = (8, 'kmeans_lut') if int8 else (16, 'linear') if half else (32, None)
+    if bits < 32:
+        if MACOS:  # quantization only supported on macOS
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)  # suppress numpy==1.20 float warning
+                orig_model = ct.models.neural_network.quantization_utils.quantize_weights(orig_model, bits, mode)
+        else:
+            print(f'{prefix} quantization only supported on macOS, skipping...')
 
     spec = orig_model.get_spec()
     old_box_output_name = spec.description.output[1].name
@@ -711,7 +722,7 @@ def run(
         # f[4], _ = export_coreml(model, im, file, int8, half)
         ###
         nb = shape[1]
-        f[4], _ = export_coreml(model, im, file, nb, nc, names, conf_thres, iou_thres)
+        f[4], _ = export_coreml(model, im, file, int8, half, nb, nc, names, conf_thres, iou_thres)
         ###
 
     if any((saved_model, pb, tflite, edgetpu, tfjs)):  # TensorFlow formats
