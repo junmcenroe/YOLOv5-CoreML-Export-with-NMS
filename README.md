@@ -7,7 +7,7 @@ Usage on GoogleColab
 
 !git clone https://github.com/ultralytics/yolov5.git
 
-!pip install coremltools
+!pip install coremltools==6.2
 
 !git clone https://github.com/junmcenroe/YOLOv5-CoreML-Export-with-NMS.git
 
