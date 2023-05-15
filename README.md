@@ -6,8 +6,11 @@ This export-coreml-nms.py can export .mlmodel with NMS from .pt on recent yolov5
 Usage on GoogleColab
 
 !git clone https://github.com/ultralytics/yolov5.git
+
 cd yolov5
+
 !pip install -r requirements.txt
+
 cd ..
 
 !pip install coremltools==6.2
